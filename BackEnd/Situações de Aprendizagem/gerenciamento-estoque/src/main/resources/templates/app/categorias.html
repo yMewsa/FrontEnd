@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="pt-br" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Categorias | SGE</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}"/>
+</head>
+<body>
+    <div th:include="~{fragments/header :: header}"></div>
+    <main class="senai-main">
+        <div class="senai-shell" style="flex-direction: column; align-items: stretch;">
+            <h1 class="senai-title">Gerenciar Categorias</h1>
+            
+            <div class="senai-card" style="margin-top: 20px;">
+                <h3>Nova Categoria</h3>
+                <form id="formCategoria" class="senai-form">
+                    <input type="text" id="nomeCat" class="senai-input" placeholder="Nome (Ex: Eletrônica)" required>
+                    <input type="text" id="descCat" class="senai-input" placeholder="Descrição">
+                    <button type="submit" class="senai-button">Salvar</button>
+                </form>
+            </div>
+
+            <table style="width: 100%; margin-top: 20px; text-align: left; border-collapse: collapse;">
+                <thead style="background: #1F2937; color: white;">
+                    <tr><th>ID</th><th>Nome</th><th>Descrição</th></tr>
+                </thead>
+                <tbody id="tabelaCategorias">
+                    </tbody>
+            </table>
+        </div>
+    </main>
+    <div th:include="~{fragments/footer :: footer}"></div>
+
+    <script>
+        // Busca os dados da API
+        async function carregarCategorias() {
+            const response = await fetch('/api/categorias');
+            const categorias = await response.json();
+            const tbody = document.getElementById('tabelaCategorias');
+            tbody.innerHTML = '';
+            categorias.forEach(cat => {
+                tbody.innerHTML += `<tr>
+                    <td style="padding: 10px; border-bottom: 1px solid #ccc;">${cat.id}</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #ccc;">${cat.nome}</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #ccc;">${cat.descricao || '-'}</td>
+                </tr>`;
+            });
+        }
+
+        // Envia dados para a API
+        document.getElementById('formCategoria').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const payload = {
+                nome: document.getElementById('nomeCat').value,
+                descricao: document.getElementById('descCat').value
+            };
+            await fetch('/api/categorias', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            e.target.reset();
+            carregarCategorias(); // Recarrega a tabela
+        });
+
+        carregarCategorias(); // Roda ao abrir a página
+    </script>
+</body>
+</html>

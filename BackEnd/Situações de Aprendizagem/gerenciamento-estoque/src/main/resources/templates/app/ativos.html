@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="pt-br" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Patrimônio | SGE</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}"/>
+</head>
+<body>
+    <div th:include="~{fragments/header :: header}"></div>
+    <main class="senai-main">
+        <div class="senai-shell" style="flex-direction: column; align-items: stretch;">
+            <h1 class="senai-title">Ativos Patrimoniais</h1>
+            
+            <div class="senai-card" style="margin-top: 20px;">
+                <form id="formAtivo" class="senai-form" style="grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <input type="text" id="tombamento" class="senai-input" placeholder="Nº Tombamento" required>
+                    <input type="text" id="nomeAtivo" class="senai-input" placeholder="Descrição do Equipamento" required>
+                    <input type="text" id="local" class="senai-input" placeholder="Localização (Ex: Lab 02)" required>
+                    <select id="catAtivo" class="senai-input" required><option value="">Selecione a Categoria</option></select>
+                    <select id="estado" class="senai-input" required>
+                        <option value="NOVO">Novo</option>
+                        <option value="BOM">Bom</option>
+                        <option value="MANUTENCAO">Em Manutenção</option>
+                    </select>
+                    <button type="submit" class="senai-button" style="grid-column: span 2;">Registrar Equipamento</button>
+                </form>
+            </div>
+
+            <table style="width: 100%; margin-top: 20px; text-align: left; border-collapse: collapse;">
+                <thead style="background: #E30613; color: white;">
+                    <tr><th>Tombamento</th><th>Equipamento</th><th>Localização</th><th>Estado</th></tr>
+                </thead>
+                <tbody id="tabelaAtivos"></tbody>
+            </table>
+        </div>
+    </main>
+
+    <script>
+        async function carregarDropdown() {
+            const res = await fetch('/api/categorias');
+            const categorias = await res.json();
+            const select = document.getElementById('catAtivo');
+            categorias.forEach(c => select.innerHTML += `<option value="${c.id}">${c.nome}</option>`);
+        }
+
+        async function carregarAtivos() {
+            const response = await fetch('/api/ativos');
+            const ativos = await response.json();
+            const tbody = document.getElementById('tabelaAtivos');
+            tbody.innerHTML = '';
+            ativos.forEach(a => {
+                tbody.innerHTML += `<tr>
+                    <td style="padding: 10px; border-bottom: 1px solid #ccc;">${a.numeroTombamento}</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #ccc;">${a.nome}</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #ccc;">${a.localizacao}</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #ccc;">${a.estadoConservacao}</td>
+                </tr>`;
+            });
+        }
+
+        document.getElementById('formAtivo').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const payload = {
+                numeroTombamento: document.getElementById('tombamento').value,
+                nome: document.getElementById('nomeAtivo').value,
+                localizacao: document.getElementById('local').value,
+                estadoConservacao: document.getElementById('estado').value,
+                categoria: { id: document.getElementById('catAtivo').value }
+            };
+            await fetch('/api/ativos', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            e.target.reset();
+            carregarAtivos();
+        });
+
+        carregarDropdown();
+        carregarAtivos();
+    </script>
+</body>
+</html>

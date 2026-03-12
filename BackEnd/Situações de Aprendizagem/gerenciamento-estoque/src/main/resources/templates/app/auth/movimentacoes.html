@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="pt-br" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Movimentações | SGE</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}"/>
+</head>
+<body>
+    <div th:include="~{fragments/header :: header}"></div>
+    <main class="senai-main">
+        <div class="senai-shell" style="flex-direction: column; align-items: stretch;">
+            <h1 class="senai-title">Registrar Entrada / Saída</h1>
+            
+            <div class="senai-card" style="margin-top: 20px;">
+                <form id="formMov" class="senai-form" style="grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <select id="tipoMov" class="senai-input" required>
+                        <option value="ENTRADA">Entrada (Adicionar Estoque)</option>
+                        <option value="SAIDA">Saída (Retirar Estoque)</option>
+                    </select>
+                    <select id="matMov" class="senai-input" required><option value="">Selecione o Material</option></select>
+                    <input type="number" id="qtdMov" class="senai-input" placeholder="Quantidade" required>
+                    <button type="submit" class="senai-button" style="grid-column: span 2;">Registrar Movimentação</button>
+                </form>
+            </div>
+
+            <table style="width: 100%; margin-top: 20px; text-align: left; border-collapse: collapse;">
+                <thead style="background: #1F2937; color: white;">
+                    <tr><th>Tipo</th><th>Material</th><th>Quantidade</th><th>Data</th></tr>
+                </thead>
+                <tbody id="tabelaMov"></tbody>
+            </table>
+        </div>
+    </main>
+
+    <script>
+        async function carregarDropdownMateriais() {
+            const res = await fetch('/api/materiais');
+            const materiais = await res.json();
+            const select = document.getElementById('matMov');
+            materiais.forEach(m => select.innerHTML += `<option value="${m.id}">${m.nome} (Atual: ${m.quantidadeAtual})</option>`);
+        }
+
+        async function carregarMovimentacoes() {
+            const response = await fetch('/api/movimentacoes');
+            const movs = await response.json();
+            const tbody = document.getElementById('tabelaMov');
+            tbody.innerHTML = '';
+            movs.forEach(m => {
+                let cor = m.tipo === 'ENTRADA' ? 'green' : 'red';
+                tbody.innerHTML += `<tr>
+                    <td style="padding: 10px; border-bottom: 1px solid #ccc; color: ${cor}; font-weight: bold;">${m.tipo}</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #ccc;">${m.material.nome}</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #ccc;">${m.quantidade}</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #ccc;">${new Date(m.dataHora).toLocaleDateString('pt-BR')}</td>
+                </tr>`;
+            });
+        }
+
+        document.getElementById('formMov').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const payload = {
+                tipo: document.getElementById('tipoMov').value,
+                quantidade: document.getElementById('qtdMov').value,
+                material: { id: document.getElementById('matMov').value },
+                funcionarioResponsavel: { id: 1 } // Assumindo que o Admin de teste é ID 1
+            };
+            
+            const res = await fetch('/api/movimentacoes', { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify(payload) 
+            });
+
+            if(res.ok) {
+                e.target.reset();
+                carregarMovimentacoes();
+                // Limpa e recarrega o dropdown para atualizar a quantidade que aparece no texto
+                document.getElementById('matMov').innerHTML = '<option value="">Selecione o Material</option>';
+                carregarDropdownMateriais();
+            } else {
+                alert("Erro ao movimentar. Verifique se há estoque suficiente para a saída.");
+            }
+        });
+
+        carregarDropdownMateriais();
+        carregarMovimentacoes();
+    </script>
+</body>
+</html>
